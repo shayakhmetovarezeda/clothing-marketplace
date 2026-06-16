@@ -6,6 +6,7 @@ from app.models.order import Order
 from app.broker import publish_event
 from app.services.item_service import _clear_items_cache
 
+from app.redis_client import redis_client
 
 async def create_order(session: AsyncSession, buyer_id: int, item_id: int) -> Order:
     """Создаёт заказ и резервирует товар."""
@@ -31,6 +32,9 @@ async def create_order(session: AsyncSession, buyer_id: int, item_id: int) -> Or
 
     # бросаем событие в брокер
     await publish_event({"event": "order.created", "order_id": order.id, "item_id": item_id})
+
+    await redis_client.set(f"order_ttl:{order.id}", "1", ex=900)
+
     return order
 
 
@@ -49,6 +53,7 @@ async def confirm_order(session: AsyncSession, buyer_id: int, order_id: int) -> 
     order.status = "CONFIRMED"
     item = await session.get(Item, order.item_id)
     item.status = "SOLD"
+    await redis_client.delete(f"order_ttl:{order.id}")
     await session.commit()
     await session.refresh(order)
     await _clear_items_cache()
@@ -72,6 +77,7 @@ async def cancel_order(session: AsyncSession, buyer_id: int, order_id: int) -> O
     order.status = "CANCELLED"
     item = await session.get(Item, order.item_id)
     item.status = "ACTIVE"  # товар снова доступен
+    await redis_client.delete(f"order_ttl:{order.id}")
     await session.commit()
     await session.refresh(order)
     await _clear_items_cache()
