@@ -19,6 +19,8 @@ class Settings(BaseSettings):
 
     redis_url: str = "redis://localhost:6379/0"
 
+    rabbitmq_url: str = "amqp://guest:guest@localhost:5672/"
+
     @property
     def database_url(self) -> str:
         return (
