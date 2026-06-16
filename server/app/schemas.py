@@ -35,3 +35,12 @@ class ItemRead(BaseModel):
     category: str
     status: str
     created_at: datetime
+
+
+class ItemUpdate(BaseModel):
+    title: str | None = None
+    description: str | None = None
+    price: float | None = None
+    size: str | None = None
+    brand: str | None = None
+    category: str | None = None

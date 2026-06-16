@@ -17,6 +17,9 @@ from app.auth import oauth2_scheme
 from datetime import datetime, timezone
 from fastapi import Depends
 
+from app.schemas import ItemUpdate
+from app.services.item_service import update_item, delete_item
+
 app = FastAPI(title="Clothing Marketplace")
 
 
@@ -53,10 +56,9 @@ async def create_item_route(
     return await create_item(session, current_user.id, data)
 
 
-@app.get("/items", response_model=list[ItemRead])
+@app.get("/items")
 async def get_items_route(session: AsyncSession = Depends(get_session)):
     return await list_items(session)
-
 
 @app.get("/items/{item_id}", response_model=ItemRead)
 async def get_item_route(item_id: int, session: AsyncSession = Depends(get_session)):
@@ -78,3 +80,32 @@ async def logout(token: str = Depends(oauth2_scheme)):
     # кладём в чёрный список ровно до истечения токена
     await redis_client.set(f"blacklist:{jti}", "1", ex=ttl)
     return {"message": "Вы вышли из системы"}
+
+@app.patch("/items/{item_id}", response_model=ItemRead)
+async def update_item_route(
+    item_id: int,
+    data: ItemUpdate,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    try:
+        return await update_item(session, item_id, current_user.id, data)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+
+
+@app.delete("/items/{item_id}")
+async def delete_item_route(
+    item_id: int,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    try:
+        await delete_item(session, item_id, current_user.id)
+        return {"message": "Товар удалён"}
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
