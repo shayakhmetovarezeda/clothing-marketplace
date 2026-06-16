@@ -23,6 +23,9 @@ from app.services.item_service import update_item, delete_item
 from app.schemas import OrderRead
 from app.services.order_service import create_order, confirm_order, cancel_order
 
+from fastapi import UploadFile, File
+from app.services.photo_service import upload_photo
+
 app = FastAPI(title="Clothing Marketplace")
 
 
@@ -149,5 +152,21 @@ async def cancel_order_route(
         return await cancel_order(session, current_user.id, order_id)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+
+@app.post("/items/{item_id}/photo")
+async def upload_photo_route(
+    item_id: int,
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    file_bytes = await file.read()
+    try:
+        photo = await upload_photo(session, item_id, current_user.id, file_bytes, file.content_type)
+        return {"url": photo.url}
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
     except PermissionError as e:
         raise HTTPException(status_code=403, detail=str(e))
