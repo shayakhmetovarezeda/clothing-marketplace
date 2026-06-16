@@ -44,3 +44,11 @@ class ItemUpdate(BaseModel):
     size: str | None = None
     brand: str | None = None
     category: str | None = None
+
+class OrderRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    item_id: int
+    buyer_id: int
+    status: str
+    created_at: datetime

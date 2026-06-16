@@ -20,6 +20,9 @@ from fastapi import Depends
 from app.schemas import ItemUpdate
 from app.services.item_service import update_item, delete_item
 
+from app.schemas import OrderRead
+from app.services.order_service import create_order, confirm_order, cancel_order
+
 app = FastAPI(title="Clothing Marketplace")
 
 
@@ -107,5 +110,44 @@ async def delete_item_route(
         return {"message": "Товар удалён"}
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+
+@app.post("/orders", response_model=OrderRead)
+async def create_order_route(
+    item_id: int,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    try:
+        return await create_order(session, current_user.id, item_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.post("/orders/{order_id}/confirm", response_model=OrderRead)
+async def confirm_order_route(
+    order_id: int,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    try:
+        return await confirm_order(session, current_user.id, order_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+
+
+@app.post("/orders/{order_id}/cancel", response_model=OrderRead)
+async def cancel_order_route(
+    order_id: int,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    try:
+        return await cancel_order(session, current_user.id, order_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except PermissionError as e:
         raise HTTPException(status_code=403, detail=str(e))
