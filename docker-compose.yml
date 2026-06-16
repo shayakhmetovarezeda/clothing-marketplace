@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:13
+    container_name: postgres_db
+    ports:
+      - "5433:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=admin
+      - POSTGRES_DB=marketplace
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+
+volumes:
+  pg_data:
