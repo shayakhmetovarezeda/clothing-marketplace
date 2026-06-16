@@ -10,6 +10,13 @@ from app.services.user_service import register_user, authenticate_user
 from app.auth import create_access_token, get_current_user
 from app.models.user import User
 
+import jwt
+from app.config import settings
+from app.redis_client import redis_client
+from app.auth import oauth2_scheme
+from datetime import datetime, timezone
+from fastapi import Depends
+
 app = FastAPI(title="Clothing Marketplace")
 
 
@@ -57,3 +64,17 @@ async def get_item_route(item_id: int, session: AsyncSession = Depends(get_sessi
     if item is None:
         raise HTTPException(status_code=404, detail="Товар не найден")
     return item
+
+@app.post("/logout")
+async def logout(token: str = Depends(oauth2_scheme)):
+    payload = jwt.decode(token, settings.jwt_secret, algorithms=["HS256"])
+    jti = payload.get("jti")
+    exp = payload.get("exp")
+
+    # сколько секунд осталось жить токену
+    now = int(datetime.now(timezone.utc).timestamp())
+    ttl = max(exp - now, 1)
+
+    # кладём в чёрный список ровно до истечения токена
+    await redis_client.set(f"blacklist:{jti}", "1", ex=ttl)
+    return {"message": "Вы вышли из системы"}

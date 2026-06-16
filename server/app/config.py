@@ -13,8 +13,11 @@ class Settings(BaseSettings):
     postgres_db: str
     postgres_port: int = 5433
     postgres_host: str = "localhost"
+
     jwt_secret: str = "dev_secret"
     jwt_expire_minutes: int = 60
+
+    redis_url: str = "redis://localhost:6379/0"
 
     @property
     def database_url(self) -> str:
