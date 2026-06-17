@@ -24,6 +24,8 @@
     .create input { padding: 8px; margin: 0 8px 8px 0; border: 1px solid #ddd; border-radius: 6px; }
     .create button { padding: 8px 16px; border: none; border-radius: 6px; background: #3377dd; color: white; cursor: pointer; }
     .create button:hover { background: #285cb0; }
+    .buy { width: 100%; margin-top: 10px; padding: 10px; border: none; border-radius: 8px; background: #ee7733; color: white; font-weight: bold; cursor: pointer; }
+    .buy:hover { background: #d2611f; }
   </style>
 </head>
 <body>
@@ -157,6 +159,28 @@
         info.innerHTML = "";
       }
     }
+    async function buyItem(itemId) {
+      if (!token) {
+        alert("Сначала войдите, чтобы покупать");
+        return;
+      }
+      try {
+        const res = await fetch(API + "/orders?item_id=" + itemId, {
+          method: "POST",
+          headers: { "Authorization": "Bearer " + token }
+        });
+        if (res.ok) {
+          const order = await res.json();
+          alert("Заказ оформлен! Номер заказа: " + order.id + ", статус: " + order.status);
+          loadItems();   // обновляем витрину (товар станет зарезервирован и пропадёт)
+        } else {
+          const err = await res.json();
+          alert("Не удалось: " + (err.detail || "ошибка"));
+        }
+      } catch (e) {
+        alert("Ошибка соединения");
+      }
+    }
 
     async function loadItems() {
       const container = document.getElementById("items");
@@ -188,6 +212,7 @@
               '<div class="price">' + item.price + ' руб.</div>' +
               '<div class="meta">Размер: ' + item.size + ' · ' + (item.brand || "без бренда") + '</div>' +
               '<div class="meta">' + item.category + '</div>' +
+              '<button class="buy" onclick="buyItem(' + item.id + ')">Купить</button>' +
             '</div>';
         }
         container.innerHTML = html;

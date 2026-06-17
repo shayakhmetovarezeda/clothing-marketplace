@@ -23,7 +23,7 @@ async def handle_message(message: aio_pika.IncomingMessage):
     """Обрабатывает событие из очереди (пока просто логируем)."""
     async with message.process():
         data = json.loads(message.body.decode())
-        print("📬 Событие:", data)
+        print("Событие:", data)
 
 
 async def check_expired_orders():
