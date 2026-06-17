@@ -2,7 +2,8 @@ import grpc
 
 from app.grpc_generated import marketplace_pb2, marketplace_pb2_grpc
 
-GRPC_SERVER = "localhost:50051"
+from app.config import settings
+GRPC_SERVER = settings.grpc_server
 
 
 async def grpc_create_item(owner_id: int, data) -> dict:

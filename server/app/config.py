@@ -26,6 +26,8 @@ class Settings(BaseSettings):
     minio_secret_key: str = "minioadmin"
     minio_bucket: str = "item-photos"
 
+    grpc_server: str = "localhost:50051"
+
     @property
     def database_url(self) -> str:
         return (
