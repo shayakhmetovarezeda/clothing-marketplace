@@ -2,12 +2,10 @@ services:
   postgres:
     image: postgres:13
     container_name: postgres_db
+    env_file:
+      - .env
     ports:
       - "5433:5432"
-    environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=admin
-      - POSTGRES_DB=marketplace
     volumes:
       - pg_data:/var/lib/postgresql/data
 
@@ -23,6 +21,7 @@ services:
     ports:
       - "5672:5672"
       - "15672:15672"
+
   minio:
     image: minio/minio:latest
     container_name: marketplace-minio
@@ -35,6 +34,59 @@ services:
       - "9001:9001"
     volumes:
       - minio_data:/data
+
+
+  grpc:
+    build: ./server
+    container_name: marketplace-grpc
+    command: ["python", "-m", "app.grpc_server"]
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: marketplace
+      REDIS_URL: redis://redis:6379/0
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      MINIO_ENDPOINT: minio:9000
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
+
+
+  server:
+    build: ./server
+    container_name: marketplace-server
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    ports:
+      - "8000:8000"
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: marketplace
+      REDIS_URL: redis://redis:6379/0
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      MINIO_ENDPOINT: minio:9000
+      GRPC_SERVER: grpc:50051
+    depends_on:
+      - postgres
+      - redis
+      - grpc
+
+  worker:
+    build: ./worker
+    container_name: marketplace-worker
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:admin@postgres:5432/marketplace
+      REDIS_URL: redis://redis:6379/0
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
 
 volumes:
   pg_data:

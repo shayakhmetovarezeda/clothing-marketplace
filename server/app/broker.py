@@ -8,7 +8,7 @@ QUEUE_NAME = "order_events"
 
 
 async def publish_event(body: dict):
-    """Кладёт событие (записку) в очередь RabbitMQ."""
+    """Кладёт событие в очередь RabbitMQ."""
     connection = await aio_pika.connect_robust(settings.rabbitmq_url)
     async with connection:
         channel = await connection.channel()

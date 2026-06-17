@@ -8,34 +8,32 @@ from app.services.item_service import _clear_items_cache
 
 from app.redis_client import redis_client
 
+from app.lock import RedisLock
+
 async def create_order(session: AsyncSession, buyer_id: int, item_id: int) -> Order:
-    """Создаёт заказ и резервирует товар."""
-    item = await session.get(Item, item_id)
-    if item is None:
-        raise ValueError("Товар не найден")
+    # запрем товар на время операции чтобы не купили дважды одновременно
+    async with RedisLock(f"item:{item_id}"):
+        item = await session.get(Item, item_id)
+        if item is None:
+            raise ValueError("Товар не найден")
 
-    #  купить можно только активный товар
-    if item.status != "ACTIVE":
-        raise ValueError("Товар недоступен для покупки")
+        if item.status != "ACTIVE":
+            raise ValueError("Товар недоступен для покупки")
 
-    # нельзя купить свой же товар
-    if item.owner_id == buyer_id:
-        raise ValueError("Нельзя купить собственный товар")
+        if item.owner_id == buyer_id:
+            raise ValueError("Нельзя купить собственный товар")
 
-    # создаём заказ и резервируем товар
-    order = Order(item_id=item_id, buyer_id=buyer_id, status="PENDING")
-    item.status = "RESERVED"
-    session.add(order)
-    await session.commit()
-    await session.refresh(order)
-    await _clear_items_cache()
+        order = Order(item_id=item_id, buyer_id=buyer_id, status="PENDING")
+        item.status = "RESERVED"
+        session.add(order)
+        await session.commit()
+        await session.refresh(order)
+        await _clear_items_cache()
 
-    # бросаем событие в брокер
-    await publish_event({"event": "order.created", "order_id": order.id, "item_id": item_id})
+        await publish_event({"event": "order.created", "order_id": order.id, "item_id": item_id})
+        await redis_client.set(f"order_ttl:{order.id}", "1", ex=900)
+        return order
 
-    await redis_client.set(f"order_ttl:{order.id}", "1", ex=900)
-
-    return order
 
 
 async def confirm_order(session: AsyncSession, buyer_id: int, order_id: int) -> Order:
