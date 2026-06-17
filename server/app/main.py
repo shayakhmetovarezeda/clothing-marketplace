@@ -27,7 +27,20 @@ from fastapi import UploadFile, File
 from app.services.photo_service import upload_photo
 
 from app.grpc_client import grpc_create_item, grpc_list_items, grpc_get_item
+
+from app.models.item_photo import ItemPhoto
+from sqlalchemy import select
 app = FastAPI(title="Clothing Marketplace")
+
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.get("/")
@@ -169,3 +182,11 @@ async def upload_photo_route(
         raise HTTPException(status_code=404, detail=str(e))
     except PermissionError as e:
         raise HTTPException(status_code=403, detail=str(e))
+
+
+@app.get("/items/{item_id}/photos")
+async def get_item_photos(item_id: int, session: AsyncSession = Depends(get_session)):
+    result = await session.execute(
+        select(ItemPhoto.url).where(ItemPhoto.item_id == item_id)
+    )
+    return [row[0] for row in result.all()]

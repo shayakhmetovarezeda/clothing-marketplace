@@ -12,6 +12,8 @@ from app.redis_client import redis_client
 
 from app.schemas import ItemCreate, ItemUpdate
 
+from app.models.item_photo import ItemPhoto
+
 CACHE_KEY = "items:active"
 CACHE_TTL = 60
 
@@ -48,7 +50,6 @@ async def list_items(session: AsyncSession) -> list[dict]:
     )
     items = result.scalars().all()
 
-    # превращаем в простой список словарей
     data = [
         {
             "id": it.id,
