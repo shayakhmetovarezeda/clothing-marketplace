@@ -6,11 +6,16 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 
 
-RABBITMQ_URL = "amqp://guest:guest@localhost:5672/"
-QUEUE_NAME = "order_events"
-DATABASE_URL = "postgresql+asyncpg://postgres:admin@localhost:5433/marketplace"
-REDIS_URL = "redis://localhost:6379/0"
+# RABBITMQ_URL = "amqp://guest:guest@localhost:5672/"
+# QUEUE_NAME = "order_events"
+# DATABASE_URL = "postgresql+asyncpg://postgres:admin@localhost:5433/marketplace"
+# REDIS_URL = "redis://localhost:6379/0"
+import os
 
+RABBITMQ_URL = os.getenv("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/")
+QUEUE_NAME = "order_events"
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+asyncpg://postgres:admin@localhost:5433/marketplace")
+REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 
 import redis.asyncio as redis
 
