@@ -26,6 +26,7 @@ from app.services.order_service import create_order, confirm_order, cancel_order
 from fastapi import UploadFile, File
 from app.services.photo_service import upload_photo
 
+from app.grpc_client import grpc_create_item, grpc_list_items, grpc_get_item
 app = FastAPI(title="Clothing Marketplace")
 
 
@@ -53,22 +54,20 @@ async def login(
     token = create_access_token(user.id)
     return {"access_token": token, "token_type": "bearer"}
 
-@app.post("/items", response_model=ItemRead)
+@app.post("/items")
 async def create_item_route(
     data: ItemCreate,
     current_user: User = Depends(get_current_user),
-    session: AsyncSession = Depends(get_session),
 ):
-    return await create_item(session, current_user.id, data)
-
+    return await grpc_create_item(current_user.id, data)
 
 @app.get("/items")
-async def get_items_route(session: AsyncSession = Depends(get_session)):
-    return await list_items(session)
+async def get_items_route():
+    return await grpc_list_items()
 
-@app.get("/items/{item_id}", response_model=ItemRead)
-async def get_item_route(item_id: int, session: AsyncSession = Depends(get_session)):
-    item = await get_item(session, item_id)
+@app.get("/items/{item_id}")
+async def get_item_route(item_id: int):
+    item = await grpc_get_item(item_id)
     if item is None:
         raise HTTPException(status_code=404, detail="Товар не найден")
     return item
