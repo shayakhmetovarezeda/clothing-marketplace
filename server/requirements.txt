@@ -13,3 +13,6 @@ aio-pika>=9.0
 minio>=7.2
 grpcio>=1.60
 grpcio-tools>=1.60
+pytest>=8.0
+pytest-asyncio>=0.23
+aiosqlite>=0.19

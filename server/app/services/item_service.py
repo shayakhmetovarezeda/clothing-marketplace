@@ -75,7 +75,10 @@ async def get_item(session: AsyncSession, item_id: int) -> Item | None:
     return result.scalar_one_or_none()
 
 async def _clear_items_cache():
-    await redis_client.delete(CACHE_KEY)
+    try:
+        await redis_client.delete(CACHE_KEY)
+    except Exception:
+        pass
 
 async def update_item(session: AsyncSession, item_id: int, owner_id: int, data: ItemUpdate) -> Item:
     """Редактирует товар. Менять может только владелец."""
